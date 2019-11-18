@@ -16,7 +16,9 @@ class IssueRecorder():
 
     def attr_entry(self, entry, opt, date):
         assert(opt in ['create', 'deliver', 'destory'])
-        assert(entry[opt] is None)
+        if entry[opt]:
+            print(entry)
+            raise ValueError('Entry already exists.')
         entry[opt] = date
 
     def append(self, paper_date, idx_list, opt, opt_date, driver='---'):
@@ -136,6 +138,51 @@ opt_date = '20190130'
  for idxs in [9,
               range(1, 7),
               range(7, 9)]]
+
+#####################################################
+opt = 'create'
+
+opt_date = '20191025'
+[ir.append('20191025', idxs, opt, opt_date)
+for idxs in range(47, 51)]
+[ir.append('20191025', idxs, opt, opt_date)
+for idxs in range(51, 57)]
+
+#####################################################
+opt = 'destory'
+
+opt_data = '20190125'
+[ir.append('20191025', idxs, opt, opt_date)
+for idxs in [47, 48]]
+
+#####################################################
+opt = 'deliver'
+
+opt_date = '20191026'
+[ir.append('20191025', idxs, opt, opt_date)
+for idxs in [49, 50]]
+[ir.append('20191025', idxs, opt, opt_date)
+for idxs in range(51, 57)]
+
+#####################################################
+opt = 'create'
+
+opt_date = '20191104'
+[ir.append('20191104', idxs, opt, opt_date)
+for idxs in [1, 2]]
+[ir.append('20191104', idxs, opt, opt_date)
+for idxs in range(3, 8)]
+
+#####################################################
+opt = 'deliver'
+
+opt_date = '20191104'
+[ir.append('20191104', idxs, opt, opt_date)
+for idxs in [1, 2]]
+[ir.append('20191104', idxs, opt, opt_date)
+for idxs in range(3, 8)]
+
+
 
 
 print()
