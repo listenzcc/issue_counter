@@ -182,8 +182,48 @@ for idxs in [1, 2]]
 [ir.append('20191104', idxs, opt, opt_date)
 for idxs in range(3, 8)]
 
+#####################################################
+opt = 'deliver'
 
+opt_date = '20190612'
+[ir.append('20190103', idxs, opt, opt_date)
+for idxs in range(1, 4)]
 
+#####################################################
+opt = 'create'
+
+opt_date = '20191129'
+[ir.append('20191129', idxs, opt, opt_date)
+for idxs in range(2, 6)]
+[ir.append('20191129', idxs, opt, opt_date)
+for idxs in range(6, 18)]
+
+#####################################################
+opt = 'create'
+
+opt_date = '20191129'
+[ir.append('20191129', idxs, opt, opt_date)
+for idxs in range(18, 22)]
+[ir.append('20191129', idxs, opt, opt_date)
+for idxs in range(22, 33)]
+
+#####################################################
+opt = 'destory'
+
+opt_date = '20191129'
+[ir.append('20191129', idxs, opt, opt_date)
+for idxs in range(18, 22)]
+[ir.append('20191129', idxs, opt, opt_date)
+for idxs in range(22, 33)]
+
+#####################################################
+opt = 'deliver'
+
+opt_date = '20191129'
+[ir.append('20191129', idxs, opt, opt_date)
+for idxs in range(2, 6)]
+[ir.append('20191129', idxs, opt, opt_date)
+for idxs in range(6, 18)]
 
 print()
 
