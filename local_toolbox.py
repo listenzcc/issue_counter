@@ -11,7 +11,7 @@ class IssueRecorder():
         # Main dataframe
         self.df = pd.DataFrame(columns=['create', 'deliver', 'destory', 'material'])
 
-    def append(self, date, idxs, opt, opt_date, material='paper'):
+    def append(self, date, idxs, opt, opt_date, material='--'):
         # Append new issue
         # date: date of ID
         # idxs: list of ID index
@@ -93,21 +93,24 @@ class IssueRecorder():
                 data['deliver'] = b['deliver']
             else:
                 data['destory'] = b['destory']
-        
+
         # Check if creating date is in front of delivering or destorying.
         d = 'deliver'
         if data['deliver'] == '--':
             d = 'destory'
-            if data['create'] > data[d]:
-                return False
-            
+        if data['create'] > data[d]:
+            return False
+
         # The issue is fine, record it into checked
         self.checked = self.checked.append(pd.Series(name=name, data=data))
         return True
-    
+
     def logging(self, message, fp, to_html=False):
         print(message)
         if to_html:
+            if isinstance(message, pd.Series):
+                message = pd.DataFrame(message)
+                message = message.transpose()
             message = message.to_html()
         print('\n'.join(['<div>', message, '</div>']), file=fp)
     
