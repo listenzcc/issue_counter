@@ -1,131 +1,87 @@
+# %% Importing
 import os
 import pandas as pd
+from pprint import pprint
+
+# %% Class
 
 
 class IssueRecorder():
-    def __init__(self, report_path='.'):
-        # ID prefix
+    # Record issues into frame
+    def __init__(self, save_path='.', quiet=False):
+        # Init -------------------------------------
+        # Prefix for ID
         self.prefix = 'Z-L19'
-        self.report_path = report_path
-        if not os.path.exists(self.report_path):
-            os.mkdir(self.report_path)
-        # Main dataframe
-        self.df = pd.DataFrame(
-            columns=['create', 'deliver', 'destory', 'material'])
+
+        # Save path
+        self.save_path = save_path
+
+        # Init frame
+        self.frame = pd.DataFrame(columns=['Date', 'ID', 'Opt', 'Material'])
+
+        # Quiet switcher
+        self.quiet = quiet
+
+    def _prompt(self, msg, force_print=False):
+        # Print method,
+        # print if not quiet,
+        # print if force_print
+        if any([force_print,
+                not self.quiet]):
+            print(f'>> {msg}')
+
+    def _add_row_in_place(self, obj):
+        # Add obj into frame in-place
+        # Add in-place with ignore_index=True
+        self.frame = self.frame.append(pd.Series(obj), ignore_index=True)
+
+        # Report current state
+        num_lines = len(self.frame)
+        self._prompt(f'Added new line into frame, {num_lines} lines in all.')
 
     def append(self, date, idxs, opt, opt_date, material='--'):
-        # Append new issue
-        # date: date of ID
-        # idxs: list of ID index
-        # opt: operation: create, deliver, destory
-        # opt_date: operating date
+        # Append new line based on inputs
+        # date: Date of ID
+        # idxs: indexes of ID
+        # opt: Operation name of ID
+        # opt_date: Operation date
+        # material: Material name, only valid when opt is 'Create'
 
-        # idxs should be a list
-        if type(idxs) is int:
+        # Covert idxs from {int} to {list}
+        if isinstance(idxs, int):
             idxs = [idxs]
 
-        # For each index
+        # Iterate over idxs
         for idx in idxs:
-            # Issue name
-            name = '{prefix}-{date}-{idx:03d}'.format(
-                prefix=self.prefix, date=date, idx=idx)
-            print(name)
-            # Build series
-            se = pd.Series(name=name, data={
-                           opt: opt_date, 'material': material})
-            print(se)
-            # Append series into main dataframe
-            self.df = self.df.append(se)
+            # Make dict obj
+            new_item = dict(
+                Date=opt_date,
+                Material=material,
+                Opt=opt.title(),
+                ID=f'{self.prefix}-{date}-{idx:03d}'
+            )
 
-    def check(self):
-        # Walk through main dataframe, and check issues
-        self.df = self.df.fillna('--')
-        # Init bug list
-        self.bugs = []
-        self.checked = pd.DataFrame(columns=['create', 'deliver', 'destory'])
-        # For each issue name
-        for name in self.df.index.unique():
-            # There should be several records for certain issue name
-            ses = self.df.loc[name]
-            print(ses)
-            # If closed well, print pass,
-            # if not, print bug and record into bug list
-            if self.check_finish(ses):  # len(ses) == 2:
-                print('Pass.')
-            else:
-                print('Bug.')
-                self.bugs.append(name)
+            # Add new line based on obj
+            self._add_row_in_place(new_item)
 
-    def check_finish(self, ses):
-        # Check if the session closed
-        # ses: a series of certain issue name
+        # Report
+        self._prompt(f'Added {len(idxs)} lines.')
 
-        # name: Issue name
-        name = ses.index.unique()
-        if len(name) > 1:
-            return False
-        name = name[0]
+    def save_recorder(self, fname):
+        # Save frame into json file
+        # Regulate fname
+        if not fname.endswith('.json'):
+            fname = fname + '.json'
 
-        # A closed session should contain exactly 2 records
-        if not len(ses) == 2:
-            return False
+        # Prepare full path
+        path = os.path.join(self.save_path, fname)
 
-        # a, b: two records
-        a = ses.iloc[0].to_dict()
-        b = ses.iloc[1].to_dict()
+        # Save
+        # Transpose frame to human readable
+        self.frame.transpose().to_json(path)
 
-        # The issue in a closed session should not be created twice
-        if all([a['create'] == '--', b['create'] == '--']):
-            return False
+        # Report
+        self._prompt(f'Save frame into {path}', force_print=True)
 
-        # data: data of circle report of the issue
-        data = dict(
-            create='--',
-            deliver='--',
-            destory='--',
-        )
-        # Fill data using a and b
-        if a['create'] == '--':
-            data['create'] = b['create']
-            if a['destory'] == '--':
-                data['deliver'] = a['deliver']
-            else:
-                data['destory'] = a['destory']
-        else:
-            data['create'] = a['create']
-            if b['destory'] == '--':
-                data['deliver'] = b['deliver']
-            else:
-                data['destory'] = b['destory']
-
-        # Check if creating date is in front of delivering or destorying.
-        d = 'deliver'
-        if data['deliver'] == '--':
-            d = 'destory'
-        if data['create'] > data[d]:
-            return False
-
-        # The issue is fine, record it into checked
-        self.checked = self.checked.append(pd.Series(name=name, data=data))
-        return True
-
-    def logging(self, message, fp, to_html=False):
-        print(message)
-        if to_html:
-            if isinstance(message, pd.Series):
-                message = pd.DataFrame(message)
-                message = message.transpose()
-            message = message.to_html()
-        print('\n'.join(['<div>', message, '</div>']), file=fp)
-
-    def report_finish(self):
-        with open(os.path.join(self.report_path, 'finish.html'), 'w') as fp:
-            self.checked.to_html(fp, index=True)
-
-    def report_bugs(self):
-        with open(os.path.join(self.report_path, 'bugs.html'), 'w') as fp:
-            self.logging('=' * 80, fp)
-            self.logging('Bugs report.', fp)
-            for name in self.bugs:
-                self.logging('-' * 80, fp)
-                self.logging(self.df.loc[name], fp, to_html=True)
+    def pprint(self):
+        pprint(self.frame)
