@@ -1,10 +1,10 @@
 
-def add_issues(ir):
+def batch_add_issues(ir):
     ####################################################
     # Append: date, idxs, opt, opt_date, material='--'):
     # date: date of ID
     # idxs: list of ID index
-    # opt: operation: create, deliver, destory
+    # opt: operation: create, deliver, destroy
     # opt_date: operating date
 
     ####################################################
@@ -52,7 +52,7 @@ def add_issues(ir):
                   6]]
 
     ####################################################
-    opt = 'destory'
+    opt = 'destroy'
 
     opt_date = '20190424'
     [ir.append('20190319', idxs, opt, opt_date)
@@ -78,7 +78,7 @@ def add_issues(ir):
      for idxs in range(51, 57)]
 
     #####################################################
-    opt = 'destory'
+    opt = 'destroy'
 
     opt_data = '20190125'
     [ir.append('20191025', idxs, opt, opt_date)
@@ -144,7 +144,7 @@ def add_issues(ir):
      for idxs in range(22, 34)]
 
     #####################################################
-    opt = 'destory'
+    opt = 'destroy'
 
     opt_date = '20191129'
     [ir.append('20191129', idxs, opt, opt_date)
@@ -188,3 +188,90 @@ def add_issues(ir):
     opt_date = '20191223'
     [ir.append('20191223', idxs, opt, opt_date)
      for idxs in [1]]
+
+
+def batch_add_test_issues(ir):
+    ####################################################
+    # create
+    record = dict(
+        opt='create',
+        date='20200406',
+        idxs=[1, 3, 5, 7, 9],
+        opt_date='20200406',
+        material='example'
+    )
+
+    ir.append(**record)
+
+    ####################################################
+    # create repeat 9
+    record = dict(
+        opt='create',
+        date='20200406',
+        idxs=9,
+        opt_date='20200406',
+        material='example'
+    )
+
+    ir.append(**record)
+
+    ####################################################
+    # deliver 1
+    record = dict(
+        opt='deliver',
+        date='20200406',
+        idxs=1,
+        opt_date='20200501',
+        material='example'
+    )
+
+    ir.append(**record)
+
+    ####################################################
+    # destroy 3
+    record = dict(
+        opt='destroy',
+        date='20200406',
+        idxs=3,
+        opt_date='20200503',
+        material='example'
+    )
+
+    ir.append(**record)
+
+    ####################################################
+    # deliver before create 5
+    record = dict(
+        opt='deliver',
+        date='20200406',
+        idxs=5,
+        opt_date='20200303',
+        material='example'
+    )
+
+    ir.append(**record)
+
+    ####################################################
+    # destroy before create 7
+    record = dict(
+        opt='destroy',
+        date='20200406',
+        idxs=7,
+        opt_date='20200313',
+        material='example'
+    )
+
+    ir.append(**record)
+
+    ####################################################
+    # destroy twice 7
+    # destroy not created 13
+    record = dict(
+        opt='destroy',
+        date='20200406',
+        idxs=[7, 13],
+        opt_date='20200803',
+        material='example'
+    )
+
+    ir.append(**record)
