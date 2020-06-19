@@ -1,3 +1,5 @@
+# Run me, for now
+
 from local_toolbox import IssueRecorder
 
 ir = IssueRecorder('C:\\Users\\liste\\Documents\\issue_counter\\reports')
