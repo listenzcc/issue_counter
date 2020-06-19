@@ -228,9 +228,21 @@ def batch_add_test_issues(ir):
     ir.append(**record)
 
     ####################################################
-    # destroy 3
+    # destroy 3 (conflict)
     record = dict(
         opt='destroy',
+        date='20200406',
+        idxs=3,
+        opt_date='20200503',
+        material='example'
+    )
+
+    ir.append(**record)
+
+    ####################################################
+    # deliver 3 (conflict)
+    record = dict(
+        opt='deliver',
         date='20200406',
         idxs=3,
         opt_date='20200503',
