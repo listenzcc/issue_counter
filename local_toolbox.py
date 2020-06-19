@@ -1,6 +1,7 @@
 import os
 import pandas as pd
 
+
 class IssueRecorder():
     def __init__(self, report_path='.'):
         # ID prefix
@@ -9,7 +10,8 @@ class IssueRecorder():
         if not os.path.exists(self.report_path):
             os.mkdir(self.report_path)
         # Main dataframe
-        self.df = pd.DataFrame(columns=['create', 'deliver', 'destory', 'material'])
+        self.df = pd.DataFrame(
+            columns=['create', 'deliver', 'destory', 'material'])
 
     def append(self, date, idxs, opt, opt_date, material='--'):
         # Append new issue
@@ -25,16 +27,18 @@ class IssueRecorder():
         # For each index
         for idx in idxs:
             # Issue name
-            name = '{prefix}-{date}-{idx:03d}'.format(prefix=self.prefix, date=date, idx=idx)
+            name = '{prefix}-{date}-{idx:03d}'.format(
+                prefix=self.prefix, date=date, idx=idx)
             print(name)
             # Build series
-            se = pd.Series(name=name, data={opt: opt_date, 'material': material})
+            se = pd.Series(name=name, data={
+                           opt: opt_date, 'material': material})
             print(se)
             # Append series into main dataframe
             self.df = self.df.append(se)
 
     def check(self):
-        # Walk throught main dataframe, and check issues
+        # Walk through main dataframe, and check issues
         self.df = self.df.fillna('--')
         # Init bug list
         self.bugs = []
@@ -55,30 +59,30 @@ class IssueRecorder():
     def check_finish(self, ses):
         # Check if the session closed
         # ses: a series of certain issue name
-        
+
         # name: Issue name
         name = ses.index.unique()
         if len(name) > 1:
             return False
         name = name[0]
-        
+
         # A closed session should contain exactly 2 records
         if not len(ses) == 2:
             return False
-        
+
         # a, b: two records
         a = ses.iloc[0].to_dict()
         b = ses.iloc[1].to_dict()
-        
+
         # The issue in a closed session should not be created twice
         if all([a['create'] == '--', b['create'] == '--']):
             return False
-        
+
         # data: data of circle report of the issue
         data = dict(
-            create = '--',
-            deliver = '--',
-            destory = '--',
+            create='--',
+            deliver='--',
+            destory='--',
         )
         # Fill data using a and b
         if a['create'] == '--':
@@ -113,7 +117,7 @@ class IssueRecorder():
                 message = message.transpose()
             message = message.to_html()
         print('\n'.join(['<div>', message, '</div>']), file=fp)
-    
+
     def report_finish(self):
         with open(os.path.join(self.report_path, 'finish.html'), 'w') as fp:
             self.checked.to_html(fp, index=True)
