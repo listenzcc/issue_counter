@@ -15,6 +15,9 @@ class IssueChecker():
         # Init bads
         self.bads = []
 
+    def _prompt(self, msg):
+        print(f'>> {msg}')
+
     def _get_lines(self, frame, column, target, return_mismatch=False):
         # Get lines by column name ------------------------------
         # Get match_lines
@@ -23,7 +26,7 @@ class IssueChecker():
 
         # Report
         num_matches = len(match_lines)
-        print(f'Match lines {num_matches}, [{column}] is [{target}].')
+        self._prompt(f'Match lines {num_matches}, [{column}] is [{target}].')
 
         # If return_mismatch, return mismatch lines
         if return_mismatch:
@@ -36,7 +39,7 @@ class IssueChecker():
 
             # Report
             num_mismatches = len(mismatch_lines)
-            print(f'Mismatch lines: {num_mismatches}.')
+            self._prompt(f'Mismatch lines: {num_mismatches}.')
 
         # Re-index and Return
         match_lines.index = range(len(match_lines))
@@ -50,8 +53,8 @@ class IssueChecker():
         self.bads.append(dict(name=name,
                               reason=reason,
                               value=obj))
-        print(f'New bad added: {name}: {reason}')
-        print(f'    {len(self.bads)} in total.')
+        self._prompt(f'New bad added: {name}: {reason}')
+        self._prompt(f'    {len(self.bads)} bads in total.')
 
     def _check_repeat(self, lines, reason='Repeat ID in same operation', name='Repeat'):
         # Check the wrong recording of repeat ID in same operation
@@ -66,7 +69,33 @@ class IssueChecker():
                                                column='ID',
                                                target=_id,
                                                return_mismatch=True)
+
+            # Record bad lines
             self._bad_collection(bad_lines, reason=reason, name=name)
+
+        # Return
+        return lines
+
+    def _check_end_before_create(self, lines, reason='Ending without create', name='Invalid ending'):
+        # Check had been created
+        # Find bad IDs
+        bad_ids = []
+        for _id in lines['ID']:
+            if not _id in self.creates['ID'].values:
+                bad_ids.append(_id)
+
+        # Remove lines with bad IDs
+        for _id in bad_ids:
+            # Remove bad lines
+            bad_lines, lines = self._get_lines(lines,
+                                               column='ID',
+                                               target=_id,
+                                               return_mismatch=True)
+
+            # Record bad lines
+            self._bad_collection(bad_lines,
+                                 reason=reason,
+                                 name=name)
 
         # Return
         return lines
@@ -94,6 +123,11 @@ class IssueChecker():
         delivers = self._check_repeat(delivers,
                                       reason='Repeat Deliver')
 
+        # Check not in creates
+        delivers = self._check_end_before_create(delivers,
+                                                 reason='Deliver that has not been creates',
+                                                 name='Invalid Deliver')
+
         # Return
         return delivers
 
@@ -107,29 +141,106 @@ class IssueChecker():
         destroy = self._check_repeat(destroy,
                                      reason='Repeat Destroy')
 
-        # Check had been created
-        bad_ids = []
-        for _id in destroy['ID']:
-            if not _id in self.creates['ID'].values:
-                bad_ids.append(_id)
-
-        for _id in bad_ids:
-            bad_lines, destroy = self._get_lines(destroy,
-                                                 column='ID',
-                                                 target=_id,
-                                                 return_mismatch=True)
-            self._bad_collection(bad_lines,
-                                 reason='Destory that has not been created',
-                                 name='Invalid Destory')
+        # Check not in creates
+        destroy = self._check_end_before_create(destroy,
+                                                reason='Destory that has not been creates',
+                                                name='Invalid Destory')
 
         # Return
         return destroy
+
+    def _check_close_creates(self):
+        # Setup new columns of creates,
+        # State refers the operation state of the ID
+
+        # Init new columns
+        self.creates['Deliver'] = '--'
+        self.creates['Destroy'] = '--'
+        self.creates['State'] = 'Open'
+        self.creates['Reason'] = '--'
+
+        # For delivers and destroy,
+        # obj is delivers or destroy,
+        # name is operation name
+        for obj, name in [(self.delivers, 'Deliver'),
+                          (self.destroy, 'Destroy')]:
+            # Walk through all lines
+            for j in obj.index:
+                # Get ID and Date
+                series = obj.loc[j]
+                _id = series['ID']
+                _date = series['Date']
+
+                # Update columns in creates
+                self.creates.loc[_id][name] = _date
+
+                # Change State
+                # If current state is 'Closed',
+                # switch into Error state of 'Double',
+                # meaning 'Invalid operation: Double endings'
+                if self.creates.loc[_id]['State'] == 'Closed':
+                    self.creates.loc[_id]['State'] = 'Double'
+                    self.creates.loc[_id]['Reason'] = 'Invalid operation: Double endings'
+                    continue
+
+                # If current state is 'Open',
+                # switch into 'Closed'
+                if self.creates.loc[_id]['State'] == 'Open':
+                    self.creates.loc[_id]['State'] = 'Closed'
+
+                # If operation date is in advance of creating date,
+                # switch into 'Invalid',
+                # meaning 'Invalid operation: {name} before creating'
+                if _date < self.creates.loc[_id]['Date']:
+                    self.creates.loc[_id]['State'] = 'Invalid'
+                    self.creates.loc[_id]['Reason'] = f'Invalid operation: {name} before create'
+                    continue
+
+        # Get opens and closes,
+        # remaining is bads
+        self.opens, mix = self._get_lines(self.creates,
+                                          column='State',
+                                          target='Open',
+                                          return_mismatch=True)
+
+        self.closes, bads = self._get_lines(mix,
+                                            column='State',
+                                            target='Closed',
+                                            return_mismatch=True)
+
+        # Record red light lines as bad lines
+        for _id in bads.index:
+            se = bads.loc[_id]
+            self._bad_collection(se,
+                                 reason=se['Reason'],
+                                 name=se['State'])
 
     def check(self):
         self.creates = self._check_creates()
         self.delivers = self._check_deliver()
         self.destroy = self._check_destroy()
-        pass
+
+        self.creates = self.creates.set_index('ID', drop=False)
+        self.creates.index = [e for e in self.creates.index]
+
+        self._check_close_creates()
+
+    def save_checked(self, dirpath):
+        self.delivers = self.closes[self.closes.Destroy == '--']
+        self.destroy = self.closes[self.closes.Deliver == '--']
+
+        self.delivers.transpose().to_json(
+            os.path.join(dirpath, 'delivers.json'))
+        self.destroy.transpose().to_json(
+            os.path.join(dirpath, 'destroy.json'))
+        self.opens.transpose().to_json(
+            os.path.join(dirpath, 'opens.json'))
+
+    def save_creates(self, name):
+        creates = self.creates.copy()
+        creates.pop('ID')
+        creates.to_json(f'{name}.json')
+        creates.to_html(f'{name}.html')
 
     def pprint(self):
         # Print using pprint
@@ -138,13 +249,10 @@ class IssueChecker():
 
 class IssueRecorder():
     # Record issues into frame
-    def __init__(self, save_path='.', quiet=False):
+    def __init__(self, quiet=False):
         # Init -------------------------------------
         # Prefix for ID
         self.prefix = 'Z-L19'
-
-        # Save path
-        self.save_path = save_path
 
         # Init frame
         self.frame = pd.DataFrame(columns=['Date', 'ID', 'Opt', 'Material'])
@@ -197,17 +305,15 @@ class IssueRecorder():
         # Report
         self._prompt(f'Added {len(idxs)} lines.')
 
-    def save_recorder(self, fname):
+    def save_recorder(self, path):
         # Save frame into json file
         # Regulate fname
-        if not fname.endswith('.json'):
-            fname = fname + '.json'
-
-        # Prepare full path
-        path = os.path.join(self.save_path, fname)
+        if not path.endswith('.json'):
+            path = path + '.json'
 
         # Save
-        # Transpose frame to human readable
+        # Transpose frame to human readable,
+        # and save
         self.frame.transpose().to_json(path)
 
         # Report
