@@ -50,9 +50,22 @@ class IssueChecker():
             return match_lines, mismatch_lines
 
     def _bad_collection(self, obj, reason='', name='--'):
+        # Record bads
+        # Convert obj into DataFrame if it is Series
+        if isinstance(obj, pd.Series):
+            obj = pd.DataFrame(obj).transpose()
+            obj.index = [0]
+
+        # Set up State and Reason
+        obj['State'] = name
+        obj['Reason'] = reason
+
+        # Record
         self.bads.append(dict(name=name,
                               reason=reason,
                               value=obj))
+
+        # Report
         self._prompt(f'New bad added: {name}: {reason}')
         self._prompt(f'    {len(self.bads)} bads in total.')
 
@@ -236,11 +249,16 @@ class IssueChecker():
         self.opens.transpose().to_json(
             os.path.join(dirpath, 'opens.json'))
 
-    def save_creates(self, name):
+    def save_creates(self, dirpath):
         creates = self.creates.copy()
         creates.pop('ID')
-        creates.to_json(f'{name}.json')
-        creates.to_html(f'{name}.html')
+        creates.to_json(os.path.join(dirpath, 'creates.json'))
+        creates.to_html(os.path.join(dirpath, 'creates.html'))
+
+    def save_bads(self, dirpath):
+        bads = pd.concat([e['value'] for e in self.bads])
+        bads.index = [e for e in range(len(bads))]
+        bads.transpose().to_json(os.path.join(dirpath, 'bads.json'))
 
     def pprint(self):
         # Print using pprint
