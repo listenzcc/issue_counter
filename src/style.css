@@ -1,0 +1,13 @@
+div {
+  width: 600px;
+  padding: 5px;
+  margin: 5px;
+  background-color: sandybrown;
+}
+
+#Canvas {
+  width: 90%;
+  height: 400px;
+  background-color: darkgray;
+  padding: 10px;
+}

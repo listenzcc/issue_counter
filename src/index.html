@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel="stylesheet" type="text/css" href="./style.css" />
+    <script src="https://d3js.org/d3.v5.min.js"></script>
+    <script src="./painting.js"></script>
+  </head>
+
+  <body>
+    <h1>Time line</h1>
+
+    <div id="HeadBar">
+      <h2>HeadBar</h2>
+    </div>
+
+    <div id="ControlPanel">
+      <h2>ControlPanel</h2>
+    </div>
+
+    <div id="Content">
+      <h2>Content</h2>
+      <svg id="Canvas">
+        <line
+          x1="0"
+          y1="0"
+          x2="100%"
+          y2="50%"
+          style="stroke: rgba(29, 57, 184, 0.9);"
+        />
+      </svg>
+    </div>
+
+    <button onClick="ruling_canvas(1, 2)">Button 1</button>
+
+    <br />
+
+    <iframe src="http://127.0.0.1:8890/delivers.json"></iframe>
+
+    <div id="FootBar">
+      <h2>FootBar</h2>
+    </div>
+  </body>
+</html>
