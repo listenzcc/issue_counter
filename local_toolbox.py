@@ -6,284 +6,135 @@ from pprint import pprint
 # %% Class
 
 
-class IssueChecker():
-    def __init__(self, recorder_json_path):
-        # Init frame by reading from [recorder_json_path]
-        frame = pd.read_json(recorder_json_path)
-        self.frame = frame.transpose()
+class IssueSorter():
+    def __init__(self, frame):
+        self.frame = frame
+        self.calendar = dict()
 
-        # Init bads
-        self.bads = []
+    def _empty_page(self):
+        return pd.DataFrame(columns=['ID', 'Material', 'Options', 'Notes', 'State'])
 
-    def _prompt(self, msg):
-        print(f'>> {msg}')
+    def _append_page(self, date, ID, material, option, note=''):
+        page = self.calendar.get(date, self._empty_page())
 
-    def _get_lines(self, frame, column, target, return_mismatch=False):
-        # Get lines by column name ------------------------------
-        # Get match_lines
-        match_idx = frame[column] == target
-        match_lines = frame.loc[match_idx]
-
-        # Report
-        num_matches = len(match_lines)
-        self._prompt(f'Match lines {num_matches}, [{column}] is [{target}].')
-
-        # If return_mismatch, return mismatch lines
-        if return_mismatch:
-            # Find non target lines
-            mismatch_idx = frame[column] != target
-
-            # Mismatch lines
-            mismatch_lines = frame.loc[mismatch_idx]
-            mismatch_lines.index = range(len(mismatch_lines))
-
-            # Report
-            num_mismatches = len(mismatch_lines)
-            self._prompt(f'Mismatch lines: {num_mismatches}.')
-
-        # Re-index and Return
-        match_lines.index = range(len(match_lines))
-
-        if not return_mismatch:
-            return match_lines
+        if ID in page['ID'].values:
+            page.loc[page['ID'] == ID]['Options'].iloc[0].append(option)
+            page.loc[page['ID'] == ID]['Notes'].iloc[0].append(note)
+            if '--' == page.loc[page['ID'] == ID]['Material'].iloc[0]:
+                page.loc[page['ID'] == ID]['Material'].iloc[0] = material
         else:
-            return match_lines, mismatch_lines
+            page = page.append(dict(ID=ID,
+                                    Material=material,
+                                    Options=[option],
+                                    Notes=[note]), ignore_index=True)
 
-    def _bad_collection(self, obj, reason='', name='--'):
-        # Record bads
-        # Convert obj into DataFrame if it is Series
-        if isinstance(obj, pd.Series):
-            obj = pd.DataFrame(obj).transpose()
-            obj.index = [0]
+        self.calendar[date] = page
 
-        # Set up State and Reason
-        if 'State' in obj.columns:
-            obj['State'] = name
-        else:
-            obj.assign(State=name)
+    def _fill_calendar(self):
+        for j in self.frame.index:
+            line = self.frame.loc[j]
+            date = line['ID'].split('-')[2]
+            opt_date = line['Date']
 
-        if 'Reason' in obj.columns:
-            obj['Reason'] = reason
-        else:
-            obj.assign(Reason=reason)
+            self._append_page(date=date,
+                              ID=line['ID'],
+                              material=line['Material'],
+                              option=(line['Opt'], opt_date),
+                              note=f'{j}')
 
-        # Record
-        self.bads.append(dict(name=name,
-                              reason=reason,
-                              value=obj))
+    def pprint(self, fpath=None):
+        for date in self.calendar:
+            print(f'---- {date} ----')
+            try:
+                display(self.calendar[date])
+            except:
+                pprint(self.calendar[date])
 
-        # Report
-        self._prompt(f'New bad added: {name}: {reason}')
-        self._prompt(f'    {len(self.bads)} bads in total.')
-
-    def _check_repeat(self, lines, reason='Repeat ID in same operation', name='Repeat'):
-        # Check the wrong recording of repeat ID in same operation
-        # Count IDs
-        ID_counts = lines['ID'].value_counts()
-
-        # For repeated IDs
-        for _id in ID_counts[ID_counts > 1].index:
-            # Remove the repeated lines,
-            # and record them in bads
-            bad_lines, lines = self._get_lines(lines,
-                                               column='ID',
-                                               target=_id,
-                                               return_mismatch=True)
-
-            # Record bad lines
-            self._bad_collection(bad_lines, reason=reason, name=name)
-
-        # Return
-        return lines
-
-    def _check_end_before_create(self, lines, reason='Ending without create', name='Invalid ending'):
-        # Check had been created
-        # Find bad IDs
-        bad_ids = []
-        for _id in lines['ID']:
-            if not _id in self.creates['ID'].values:
-                bad_ids.append(_id)
-
-        # Remove lines with bad IDs
-        for _id in bad_ids:
-            # Remove bad lines
-            bad_lines, lines = self._get_lines(lines,
-                                               column='ID',
-                                               target=_id,
-                                               return_mismatch=True)
-
-            # Record bad lines
-            self._bad_collection(bad_lines,
-                                 reason=reason,
-                                 name=name)
-
-        # Return
-        return lines
-
-    def _check_creates(self):
-        # Get creates
-        creates = self._get_lines(self.frame,
-                                  column='Opt',
-                                  target='Create')
-
-        # Check repeat ID
-        creates = self._check_repeat(creates,
-                                     reason='Repeat Create')
-
-        # Return
-        return creates
-
-    def _check_deliver(self):
-        # Get delivers
-        delivers = self._get_lines(self.frame,
-                                   column='Opt',
-                                   target='Deliver')
-
-        # Check repeat ID
-        delivers = self._check_repeat(delivers,
-                                      reason='Repeat Deliver')
-
-        # Check not in creates
-        delivers = self._check_end_before_create(delivers,
-                                                 reason='Deliver that has not been creates',
-                                                 name='Invalid Deliver')
-
-        # Return
-        return delivers
-
-    def _check_destroy(self):
-        # Get destroy
-        destroy = self._get_lines(self.frame,
-                                  column='Opt',
-                                  target='Destroy')
-
-        # Check repeat ID
-        destroy = self._check_repeat(destroy,
-                                     reason='Repeat Destroy')
-
-        # Check not in creates
-        destroy = self._check_end_before_create(destroy,
-                                                reason='Destory that has not been creates',
-                                                name='Invalid Destory')
-
-        # Return
-        return destroy
-
-    def _check_close_creates(self):
-        # Setup new columns of creates,
-        # State refers the operation state of the ID
-
-        # Init new columns
-        self.creates['Deliver'] = '--'
-        self.creates['Destroy'] = '--'
-        self.creates['State'] = 'Open'
-        self.creates['Reason'] = '--'
-
-        # For delivers and destroy,
-        # obj is delivers or destroy,
-        # name is operation name
-        for obj, name in [(self.delivers, 'Deliver'),
-                          (self.destroy, 'Destroy')]:
-            # Walk through all lines
-            for j in obj.index:
-                # Get ID and Date
-                series = obj.loc[j]
-                _id = series['ID']
-                _date = series['Date']
-
-                # Update columns in creates
-                self.creates.loc[_id][name] = _date
-
-                # Change State
-                # If current state is 'Closed',
-                # switch into Error state of 'Double',
-                # meaning 'Invalid operation: Double endings'
-                if self.creates.loc[_id]['State'] == 'Closed':
-                    self.creates.loc[_id]['State'] = 'Double'
-                    self.creates.loc[_id]['Reason'] = 'Invalid operation: Double endings'
-                    continue
-
-                # If current state is 'Open',
-                # switch into 'Closed'
-                if self.creates.loc[_id]['State'] == 'Open':
-                    self.creates.loc[_id]['State'] = 'Closed'
-
-                # If operation date is in advance of creating date,
-                # switch into 'Invalid',
-                # meaning 'Invalid operation: {name} before creating'
-                if _date < self.creates.loc[_id]['Date']:
-                    self.creates.loc[_id]['State'] = 'Invalid'
-                    self.creates.loc[_id]['Reason'] = f'Invalid operation: {name} before create'
-                    continue
-
-        # Get opens and closes,
-        # remaining is bads
-        self.opens, mix = self._get_lines(self.creates,
-                                          column='State',
-                                          target='Open',
-                                          return_mismatch=True)
-
-        self.closes, bads = self._get_lines(mix,
-                                            column='State',
-                                            target='Closed',
-                                            return_mismatch=True)
-
-        # Record red light lines as bad lines
-        for _id in bads.index:
-            se = bads.loc[_id]
-            self._bad_collection(se,
-                                 reason=se['Reason'],
-                                 name=se['State'])
+        if fpath is not None:
+            with open(fpath, 'w') as f:
+                for date in self.calendar:
+                    f.write(f'<h2> {date} </h2>\n\n')
+                    f.writelines(self.calendar[date].to_html())
+                    f.write('\n\n')
 
     def check(self):
-        self.creates = self._check_creates()
-        self.delivers = self._check_deliver()
-        self.destroy = self._check_destroy()
+        # Check all the calendar
+        # For all date
+        for date in self.calendar:
+            # Reset nan values
+            self.calendar[date][self.calendar[date].isna()] = '--'
 
-        self.creates = self.creates.set_index('ID', drop=False)
-        self.creates.index = [e for e in self.creates.index]
+            # For every line
+            for j in self.calendar[date].index:
+                # Check options
+                options = self.calendar[date].loc[j]['Options']
 
-        self._check_close_creates()
+                # Only have Create:
+                # Open case
+                if all([len(options) == 1,
+                        options[0][0] == 'Create']):
+                    self.calendar[date].loc[j]['State'] = 'Open'
+                    continue
 
-    def save_checked(self, dirpath):
-        self.delivers = self.closes[self.closes.Destroy == '--']
-        self.destroy = self.closes[self.closes.Deliver == '--']
+                # Only have one option and it is not Create:
+                # Error case
+                if len(options) == 1:
+                    self.calendar[date].loc[j]['State'] = 'Error'
+                    continue
 
-        self.delivers.transpose().to_json(
-            os.path.join(dirpath, 'delivers.json'))
-        self.destroy.transpose().to_json(
-            os.path.join(dirpath, 'destroy.json'))
-        self.opens.transpose().to_json(
-            os.path.join(dirpath, 'opens.json'))
+                # Have more than two options:
+                # Error case
+                if len(options) != 2:
+                    self.calendar[date].loc[j]['State'] = 'Error'
+                    continue
 
-    def save_creates(self, dirpath):
-        creates = self.creates.copy()
-        creates.pop('ID')
-        creates.to_json(os.path.join(dirpath, 'creates.json'))
-        creates.to_html(os.path.join(dirpath, 'creates.html'))
+                # Complicate check
+                create_count = 0
+                for k, opt in enumerate(options):
+                    if opt[0] == 'Create':
+                        create_count += 1
+                        create_idx = k
 
-    def save_bads(self, dirpath):
-        bads = pd.concat([e['value'] for e in self.bads])
-        bads.index = [e for e in range(len(bads))]
-        bads.transpose().to_json(os.path.join(dirpath, 'bads.json'))
+                # Have 0 or 2 Create options:
+                # Error case
+                if create_count != 1:
+                    self.calendar[date].loc[j]['State'] = 'Error'
+                    continue
 
-    def pprint(self):
-        # Print using pprint
-        pprint(self.frame)
+                # Create after non-create option:
+                # Error case
+                non_create_idx = (create_idx + 1) % 2
+                if options[non_create_idx][1] < options[create_idx][1]:
+                    self.calendar[date].loc[j]['State'] = 'Error'
+                    continue
+
+                # Finally,
+                # Closed case
+                self.calendar[date].loc[j]['State'] = 'Closed'
+
+
+# %% IssueRecorder
 
 
 class IssueRecorder():
     # Record issues into frame
-    def __init__(self, quiet=False):
+    def __init__(self, frame_path=None, quiet=False):
         # Init -------------------------------------
         # Prefix for ID
         self.prefix = 'Z-L19'
 
         # Init frame
-        self.frame = pd.DataFrame(columns=['Date', 'ID', 'Opt', 'Material'])
+        if frame_path is None:
+            self.frame = pd.DataFrame(
+                columns=['Date', 'ID', 'Opt', 'Material'])
+        else:
+            self.frame = pd.read_json(frame_path).transpose()
 
         # Quiet switcher
         self.quiet = quiet
+
+    def summary(self):
+        return self.frame.describe()
 
     def _prompt(self, msg, force_print=False):
         # Print method,
