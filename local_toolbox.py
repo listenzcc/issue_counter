@@ -57,8 +57,15 @@ class IssueChecker():
             obj.index = [0]
 
         # Set up State and Reason
-        obj['State'] = name
-        obj['Reason'] = reason
+        if 'State' in obj.columns:
+            obj['State'] = name
+        else:
+            obj.assign(State=name)
+
+        if 'Reason' in obj.columns:
+            obj['Reason'] = reason
+        else:
+            obj.assign(Reason=reason)
 
         # Record
         self.bads.append(dict(name=name,
