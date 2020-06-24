@@ -18,15 +18,24 @@ class IssueSorter():
         page = self.calendar.get(date, self._empty_page())
 
         if ID in page['ID'].values:
-            page.loc[page['ID'] == ID]['Options'].iloc[0].append(option)
-            page.loc[page['ID'] == ID]['Notes'].iloc[0].append(note)
+            if option[0] != 'Create':
+                page.loc[page['ID'] == ID]['Options'].iloc[0].append(option)
+                page.loc[page['ID'] == ID]['Notes'].iloc[0].append(note)
+
             if '--' == page.loc[page['ID'] == ID]['Material'].iloc[0]:
                 page.loc[page['ID'] == ID]['Material'].iloc[0] = material
         else:
-            page = page.append(dict(ID=ID,
-                                    Material=material,
-                                    Options=[option],
-                                    Notes=[note]), ignore_index=True)
+            if option[0] == 'Create':
+                page = page.append(dict(ID=ID,
+                                        Material=material,
+                                        Options=[],
+                                        Notes=[]), ignore_index=True)
+
+            else:
+                page = page.append(dict(ID=ID,
+                                        Material=material,
+                                        Options=[option],
+                                        Notes=[note]), ignore_index=True)
 
         self.calendar[date] = page
 
@@ -69,48 +78,19 @@ class IssueSorter():
                 # Check options
                 options = self.calendar[date].loc[j]['Options']
 
-                # Only have Create:
-                # Open case
-                if all([len(options) == 1,
-                        options[0][0] == 'Create']):
+                if len(options) == 0:
                     self.calendar[date].loc[j]['State'] = 'Open'
                     continue
 
-                # Only have one option and it is not Create:
-                # Error case
                 if len(options) == 1:
-                    self.calendar[date].loc[j]['State'] = 'Error'
+                    self.calendar[date].loc[j]['State'] = 'Closed'
                     continue
 
-                # Have more than two options:
+                # Have more than one options:
                 # Error case
-                if len(options) != 2:
+                if len(options) > 1:
                     self.calendar[date].loc[j]['State'] = 'Error'
                     continue
-
-                # Complicate check
-                create_count = 0
-                for k, opt in enumerate(options):
-                    if opt[0] == 'Create':
-                        create_count += 1
-                        create_idx = k
-
-                # Have 0 or 2 Create options:
-                # Error case
-                if create_count != 1:
-                    self.calendar[date].loc[j]['State'] = 'Error'
-                    continue
-
-                # Create after non-create option:
-                # Error case
-                non_create_idx = (create_idx + 1) % 2
-                if options[non_create_idx][1] < options[create_idx][1]:
-                    self.calendar[date].loc[j]['State'] = 'Error'
-                    continue
-
-                # Finally,
-                # Closed case
-                self.calendar[date].loc[j]['State'] = 'Closed'
 
 
 # %% IssueRecorder
