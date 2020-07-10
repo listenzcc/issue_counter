@@ -51,9 +51,16 @@ class IssueSorter():
                               option=(line['Opt'], opt_date),
                               note=f'{j}')
 
-    def pprint(self, fpath=None):
+    def pprint(self, fpath=None, startdate='00000000'):
+        date_pick = []
+
         for date in self.calendar:
             print(f'---- {date} ----')
+            if date <= startdate:
+                continue
+
+            date_pick.append(date)
+
             try:
                 display(self.calendar[date])
             except:
@@ -61,7 +68,7 @@ class IssueSorter():
 
         if fpath is not None:
             with open(fpath, 'w') as f:
-                for date in self.calendar:
+                for date in date_pick:
                     f.write(f'<h2> {date} </h2>\n\n')
                     f.writelines(self.calendar[date].to_html())
                     f.write('\n\n')

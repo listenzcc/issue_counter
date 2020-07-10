@@ -26,7 +26,8 @@ sorter._fill_calendar()
 sorter.check()
 
 # %%
-sorter.pprint(fpath=os.path.join(SAVE_PATH, SORTED_HTML_NAME))
+sorter.pprint(fpath=os.path.join(SAVE_PATH, SORTED_HTML_NAME),
+              startdate='20200000'.replace('2', '0'))
 
 # %%
 
