@@ -27,7 +27,7 @@ sorter.check()
 
 # %%
 sorter.pprint(fpath=os.path.join(SAVE_PATH, SORTED_HTML_NAME),
-              startdate='20200000'.replace('2', '0'))
+              startdate='20200000'.replace('0', '0'))
 
 # %%
 
