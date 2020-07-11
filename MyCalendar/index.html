@@ -1,0 +1,132 @@
+<html>
+
+<head>
+
+    <script src="https://cdn.staticfile.org/jquery/1.10.2/jquery.min.js">
+    </script>
+    <script type="text/javascript">
+        var month_table = new Array();
+        month_table["Jan"] = "01";
+        month_table["Feb"] = "02";
+        month_table["Mar"] = "03";
+        month_table["Apr"] = "04";
+        month_table["May"] = "05";
+        month_table["Jun"] = "06";
+        month_table["Jul"] = "07";
+        month_table["Aug"] = "08";
+        month_table["Sep"] = "09";
+        month_table["Oct"] = "10";
+        month_table["Nov"] = "11";
+        month_table["Dec"] = "12";
+
+        function onclick_year_button(button) {
+            var buttons = document.getElementsByClassName("yearButton");
+            for (var i = 0; i < buttons.length; i++) {
+                buttons[i].className = "yearButton";
+            }
+            button.className += " selectButton";
+
+            var label = document.getElementById("date_label");
+            [a, b, c] = label.innerHTML.split("-")
+            label.innerHTML = button.innerHTML + "-" + b + "-" + c;
+
+            $(".monthButton").fadeOut();
+            $(".monthButton").fadeIn();
+        }
+
+        function onclick_month_button(button) {
+            var buttons = document.getElementsByClassName("monthButton");
+            for (var i = 0; i < buttons.length; i++) {
+                buttons[i].className = "monthButton";
+            }
+            button.className += " selectButton";
+
+            var label = document.getElementById("date_label");
+            [a, b, c] = label.innerHTML.split("-")
+            label.innerHTML = a + "-" + month_table[button.innerHTML] + "-" + c;
+        }
+    </script>
+
+    <style type="text/css">
+        #calendar_widget {
+            position: absolute;
+            background: aqua;
+            border-width: 4px;
+            border-color: darkred;
+            border-style: groove;
+            padding: 10px;
+            left: 20px;
+            width: 700px;
+            top: 50px;
+        }
+        
+        button {
+            color: black;
+            padding: 7px;
+        }
+        
+        div {
+            padding: 4px;
+        }
+        
+        .yearButton {
+            width: 100px;
+        }
+        
+        .selectButton {
+            color: red;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Calendar</h1>
+    <div id="calendar_widget">
+        <h2>Calendar widget</h2>
+        <h3 id="date_label">2020-01-00</h3>
+
+        <div id="year_panel">
+            <button class="yearButton">2018</button>
+            <button class="yearButton">2019</button>
+            <button class="yearButton selectButton">2020</button>
+        </div>
+
+        <div id="month_panel">
+            <button class="monthButton selectButton">Jan</button>
+            <button class="monthButton">Feb</button>
+            <button class="monthButton">Mar</button>
+            <button class="monthButton">Apr</button>
+            <button class="monthButton">May</button>
+            <button class="monthButton">Jun</button>
+            <button class="monthButton">Jul</button>
+            <button class="monthButton">Aug</button>
+            <button class="monthButton">Sep</button>
+            <button class="monthButton">Oct</button>
+            <button class="monthButton">Nov</button>
+            <button class="monthButton">Dec</button>
+        </div>
+
+        <div id="date_panel">
+        </div>
+    </div>
+
+    <h2>H2</h2>
+
+    <script type="text/javascript">
+        var buttons = document.getElementsByClassName("yearButton");
+        for (var i = 0; i < buttons.length; i++) {
+            buttons[i].onclick = function() {
+                onclick_year_button(this);
+            }
+        }
+
+        buttons = document.getElementsByClassName("monthButton");
+        for (var i = 0; i < buttons.length; i++) {
+            buttons[i].onclick = function() {
+                onclick_month_button(this);
+            }
+        }
+    </script>
+</body>
+
+</html>
