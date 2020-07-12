@@ -1,9 +1,8 @@
 <html>
 
 <head>
-
-    <script src="https://cdn.staticfile.org/jquery/1.10.2/jquery.min.js">
-    </script>
+    <script src="https://cdn.staticfile.org/jquery/1.10.2/jquery.min.js"></script>
+    <script src="./scripts.js"></script>
     <script type="text/javascript">
         var month_table = new Array();
         month_table["Jan"] = "01";
@@ -27,7 +26,7 @@
             button.className += " selectButton";
 
             var label = document.getElementById("date_label");
-            [a, b, c] = label.innerHTML.split("-")
+            [a, b, c] = label.innerHTML.split("-");
             label.innerHTML = button.innerHTML + "-" + b + "-" + c;
 
             $(".monthButton").fadeOut();
@@ -42,8 +41,12 @@
             button.className += " selectButton";
 
             var label = document.getElementById("date_label");
-            [a, b, c] = label.innerHTML.split("-")
+            [a, b, c] = label.innerHTML.split("-");
             label.innerHTML = a + "-" + month_table[button.innerHTML] + "-" + c;
+            var year_month = label.innerHTML.substring(0, 7);
+
+            console.log(year_month);
+            console.log(getDates(year_month));
         }
     </script>
 
@@ -106,8 +109,7 @@
             <button class="monthButton">Dec</button>
         </div>
 
-        <div id="date_panel">
-        </div>
+        <div id="date_panel"></div>
     </div>
 
     <h2>H2</h2>
@@ -117,14 +119,14 @@
         for (var i = 0; i < buttons.length; i++) {
             buttons[i].onclick = function() {
                 onclick_year_button(this);
-            }
+            };
         }
 
         buttons = document.getElementsByClassName("monthButton");
         for (var i = 0; i < buttons.length; i++) {
             buttons[i].onclick = function() {
                 onclick_month_button(this);
-            }
+            };
         }
     </script>
 </body>
