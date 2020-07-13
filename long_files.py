@@ -150,7 +150,7 @@ def batch_add_issues(ir):
     [ir.append('20191129', idxs, opt, opt_date)
      for idxs in range(18, 22)]
     [ir.append('20191129', idxs, opt, opt_date)
-     for idxs in range(22, 33)]
+     for idxs in range(22, 34)]
 
     #####################################################
     opt = 'deliver'
@@ -204,6 +204,31 @@ def batch_add_issues(ir):
     opt_date = '20200402'
     [ir.append('20200401', idxs, opt, opt_date)
      for idxs in [1, 2]]
+
+    ######################################################
+    opt = 'create'
+
+    opt_date = '20200526'
+    [ir.append('20200526', idxs, opt, opt_date)
+     for idxs in range(1, 8)]
+    [ir.append('20200527', idxs, opt, opt_date)
+     for idxs in [1]]
+
+    ######################################################
+    opt = 'deliver'
+
+    opt_date = '20200527'
+    [ir.append('20200526', idxs, opt, opt_date)
+     for idxs in range(2, 8)]
+    [ir.append('20200527', idxs, opt, opt_date)
+     for idxs in [1]]
+
+    ######################################################
+    opt = 'destroy'
+
+    opt_date = '20200527'
+    [ir.append('20200526', idxs, opt, opt_date)
+     for idxs in [1]]
 
 
 def batch_add_test_issues(ir):
